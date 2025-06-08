@@ -1,0 +1,54 @@
+function [U] = U_Calc(beta, Tg, A_corr)
+    import casadi.*
+
+    err1 = 0.05; % Transistion polynomial range around switching points
+
+    % Define h_s function using CasADi if_else 
+    h_s = if_else(beta < -0.5, ... % h_s constant outside range
+        3603.701367482919 + 2320.2251237389582*(-0.5) +  ...
+        4628.442414497457*(-0.5).^2 + 21226.60403391536*(-0.5).^3, ...
+    if_else(beta < -err1, ... % Sub-cooled liquid 
+        3603.701367482919 + 2320.2251237389582 * beta + ...
+        4628.442414497457*beta.^2 + 21226.60403391536*beta.^3, ...
+    if_else((beta >= -err1) .* (beta <= err1), ...  % transistion poly
+        -7614761.703970*beta.^3 - 11601.125619*beta.^2 + ...
+        58270.825342*beta + 5487.306760, ...
+    if_else((beta > err1) .* (beta < 1 - err1), ... % Two-phase poly
+        7420, ... 
+    if_else((beta >= 1 - err1) .* (beta <= 1 + err1),...% transistion poly
+        12297807.754146*beta.^3 - 36896455.689820*beta.^2 + ...
+        36806951.316308*beta - 12203965.413641, ...
+    if_else(beta < 1.5, ... % gas phase
+        1877.5815995356265 - 606.4854766082036*beta, ... 
+        1877.5815995356265 - 606.4854766082036*1.5))))));
+
+    % Define h_g using CasADi if_else 
+    h_g = if_else(Tg < 400, ... 
+        115.12460346540009 - 0.06139204288200438*400, ... 
+    if_else(Tg < 700, ...
+        115.12460346540009 - 0.06139204288200438*Tg, ...
+        115.12460346540009 - 0.06139204288200438*700));
+
+    % Compute U using h_s, h_g and A_corr
+    U = 1 / (1 / (h_g * A_corr) + 1 / h_s)*1/1000; % [kW/K]
+end
+
+
+
+% Define beta range
+%beta_values = linspace(-1, 2, 1000); % Generate 1000 points between -1 and 2
+%A_corr = 5389.79/739.4; % Define A_corr (adjust as needed)
+%U_values = zeros(size(beta_values)); % Preallocate for efficiency
+
+% Compute U for each beta value
+%for i = 1:length(beta_values)
+%    U_values(i) = U_Calc(beta_values(i), A_corr);
+%end
+
+% Plot the function
+%figure;
+%plot(beta_values, U_values, 'b', 'LineWidth', 2);
+%xlabel('\beta');
+%ylabel('U');
+%title('Plot of U_{calc}(\beta, A_{corr})');
+%grid on;
